@@ -3,7 +3,7 @@ import random
 import string
 
 # Endpoint URL
-API_URL = "http://localhost:8000/colleges"  # Update with your actual endpoint
+API_URL = "http://backend.example.in/colleges"  # Update with your actual endpoint
 
 # Helper functions to generate random data
 def random_string(length=10):
@@ -20,7 +20,7 @@ def random_location():
     return random.choice(locations)
 
 # Generate and post 100 random entries
-for _ in range(100):
+for _ in range(1000):
     data = {
         "name": random_string(),
         "location": random_location(),
@@ -29,7 +29,7 @@ for _ in range(100):
     }
     
     response = requests.post(API_URL, json=data)
-    if response.status_code == 201:
+    if response.status_code == 200:
         print(f"Created: {data}")
     else:
         print(f"Failed to create: {data} | Status Code: {response.status_code} | Response: {response.text}")

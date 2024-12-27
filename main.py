@@ -1,10 +1,14 @@
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from app.core.database import master_db_engine, Base
 from fastapi.middleware.cors import CORSMiddleware
-from app.utils.response_utils import send_json_response
-from app.api.college import router as college_router
-from app.error.exception_handlers import error_exception_handlers,unexpected_exception_handlers
+from app.error.exception_handlers import error_exception_handlers, http_exception_handlers
+from app.generator.routers import generate_crud_router
+from app.generator.schema import generate_schemas
+from app.generator.models import get_models
+from app.config import model_configs
+from app.models import *
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -12,11 +16,12 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
     yield
 
-app = FastAPI(lifespan=lifespan,title="SucceedEx Placements and Training API", version="0.1.0")
+app = FastAPI(lifespan=lifespan,
+              title="SucceedEx Placements and Training API", version="0.1.0")
 
 # Register custom exception handlers
 error_exception_handlers(app)
-unexpected_exception_handlers(app)
+http_exception_handlers(app)
 
 # CORS settings
 origins = ["*"]
@@ -28,12 +33,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException):
-    if f"{exc.status_code}:" in exc.detail[:5]:
-        exc.detail = exc.detail.replace(f"{exc.status_code}:", "").strip()
-    return send_json_response(exc.status_code, exc.detail)
-
 
 @app.get("/", tags=["Root"])
 def read_root():
@@ -44,5 +43,17 @@ def read_root():
 def health_check():
     return {"status": True}
 
-app.include_router(college_router, prefix="/colleges", tags=["Colleges"])
+
+# Dynamically generate and include routers for all models
+models = get_models()
+print(models)
+for model in models:
+    schemas = generate_schemas(model)
+    model_name = model.__name__
+    config = model_configs.get(model_name, {})
+    required_roles = config.get("required_roles", {})
+    custom_routes = config.get("custom_routes", [])
+    router = generate_crud_router(
+        model, schemas, required_roles, custom_routes)
+    app.include_router(router, prefix=f"/{model.__tablename__}")
 

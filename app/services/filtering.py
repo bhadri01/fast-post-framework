@@ -20,7 +20,7 @@ COMPARISON_OPERATORS = {
     "$ncontains": lambda column, value: ~column.ilike(f"%{value}%"),
     "$startswith": lambda column, value: column.ilike(f"{value}%"),
     "$endswith": lambda column, value: column.ilike(f"%{value}"),
-     "$isnotempty": lambda column: column.is_not(None),
+    "$isnotempty": lambda column: column.is_not(None),
     "$isempty": lambda column: column.is_(None),
     "$isanyof": lambda column, value: column.in_(value)
 }
