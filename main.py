@@ -6,8 +6,10 @@ from app.error.exception_handlers import error_exception_handlers, http_exceptio
 from app.generator.routers import generate_crud_router
 from app.generator.schema import generate_schemas
 from app.generator.models import get_models
-from app.config import model_configs
-from app.models import *
+from app.api import *
+from fastapi.responses import PlainTextResponse
+from fastapi.staticfiles import StaticFiles
+from app.api.upload import upload
 
 
 @asynccontextmanager
@@ -22,6 +24,9 @@ app = FastAPI(lifespan=lifespan,
 # Register custom exception handlers
 error_exception_handlers(app)
 http_exception_handlers(app)
+
+# Serve static files
+app.mount("/public", StaticFiles(directory="public"), name="public")
 
 # CORS settings
 origins = ["*"]
@@ -43,6 +48,11 @@ def read_root():
 def health_check():
     return {"status": True}
 
+@app.get("/metrics")
+def get_metrics():
+    return PlainTextResponse("Running")
+
+app.include_router(upload.router)
 
 # Dynamically generate and include routers for all models
 models = get_models()
@@ -55,5 +65,6 @@ for model in models:
     custom_routes = config.get("custom_routes", [])
     router = generate_crud_router(
         model, schemas, required_roles, custom_routes)
-    app.include_router(router, prefix=f"/{model.__tablename__}")
+    app.include_router(router, prefix=f"/api/{model.__tablename__}")
+
 

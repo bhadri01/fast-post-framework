@@ -6,17 +6,21 @@ from typing import Optional
 # Define IST timezone
 IST = timezone(timedelta(hours=5, minutes=30))
 
+
 def generate_schemas(model):
     # Inspect SQLAlchemy model columns
     mapper = inspect(model)
     fields = {
-        column.key: (Optional[column.type.python_type], None) if column.nullable else (column.type.python_type, ...)
+        column.key: (Optional[column.type.python_type], None) if column.nullable else (
+            column.type.python_type, ...)
         for column in mapper.columns
     }
-
     # Exclude fields for the Create and Update schemas
-    exclude_fields = ["id", "documentId", "createdAt", "updatedAt", "createdBy", "updatedBy"]
-    
+    exclude_fields = ["documentId", "createdAt",
+                      "updatedAt", "createdBy", "updatedBy"]
+    if model.__tablename__ == "users":
+        exclude_fields.extend(["is_active", "is_block"])
+
     create_fields = {
         key: value
         for key, value in fields.items()
@@ -31,11 +35,11 @@ def generate_schemas(model):
 
     # Dynamically create Pydantic models
     SchemaCreate = create_model(f"{model.__name__}Create", **create_fields)
-    SchemaUpdate = create_model(f"{model.__name__}Update", **update_fields)  # Allow all fields for updates
+    # Allow all fields for updates
+    SchemaUpdate = create_model(f"{model.__name__}Update", **update_fields)
 
     # Define a custom Response schema with default fields
     class BaseResponse(BaseModel):
-        id: int
         documentId: Optional[str] = None
         createdAt: datetime
         updatedAt: datetime
@@ -49,7 +53,7 @@ def generate_schemas(model):
             }
 
     SchemaResponse = create_model(
-        f"{model.__name__}Response", 
+        f"{model.__name__}Response",
         __base__=BaseResponse,
         **fields,  # Add model-specific fields
     )

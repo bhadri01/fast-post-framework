@@ -1,14 +1,12 @@
-from app.router.college.custom import add_custom_college_routes
-
-college_config = {
+role = {
     "required_roles": {
-        "read_all": [],
+        "read_all": ["admin"],
         "read_one": [],
         "create": [],
         "update": [],
         "delete": []
     },
     "custom_routes": [
-        add_custom_college_routes
+       
     ]
 }
